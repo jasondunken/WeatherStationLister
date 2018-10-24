@@ -1,4 +1,5 @@
 import urllib
+import re
 import files
 
 file_loc = "data/asos-stations.txt"
@@ -33,49 +34,23 @@ def load_data():
 
 # this method fills an array with each location's id, lat and lon to be used for comparing to search location lat/lon
 def process_locations():
+    processed_count = 0
     for entry in all_loc:
-        key = entry[:8]
-        split_entry = ' '.split(entry)
+        split_entry = all_loc[entry].split()
+        key = split_entry[0]
+        lat = None
+        lon = None
         for s in split_entry:
-            try:
-                s = float(s)
-            except (ValueError, TypeError):
-                pass
-
-
-def load_dat_file():
-    with open(file_loc, 'r') as file:
-        entry_count = 0
-        for line in file:
-            key = line[:8]
-            if key.isdigit():
-                # add entry to main array with NCDCID as key
-                arrayOfNCDCStations[key] = line.strip()
-                # validate values and create tupple to insert into array
-                # use NCDCID as key
-                splitLine = line.split()
-                lat = None
-                lon = None
-                for value in splitLine:
-                    try:
-                        n = float(value)
-                        # if n is not None and n is a floating point value but not a whole number
-                        if n and n % 1 != 0:
-                            # if n falls within the limits of longitude
-                            if n > -180.0 and n < 180.0:
-                                if lat is None:
-                                    lat = value
-                                elif lon is None:
-                                    lon = value
-                                else:
-                                    print("Error: lat/lon values already assigned! ", value)
-                    except ValueError:
-                        pass
-                    except TypeError:
-                        pass
-                arrayOfIdLatLon[key] = (lat, lon)
-                entry_count += 1
-        print("%s file loaded, %s entries" % (file_loc, entry_count))
+            if re.match('[-+]?([0-9]*\.[0-9]+)', s):
+                if lat is None:
+                    lat = s
+                elif lon is None:
+                    lon = s
+                else:
+                    print("Error, too many lat/lon values for id: %s" % key)
+        processed_loc[key] = (lat, lon)
+        processed_count += 1
+    print("%s locations processed" % processed_count)
 
 
 def get_lat_lon():
@@ -115,12 +90,12 @@ def get_lat_lon():
 
 def get_from_closest(lat_lon):
     result = {}
-    for key in arrayOfIdLatLon:
+    for key in processed_loc:
         # algorithm here to calculate distance between positions
         # because absolute distance is not required,
         # will use a^ b^ sum to assign a dist to each coord pair
-        dist_a = abs(float(lat_lon[0])) - abs(float(arrayOfIdLatLon[key][0]))
-        dist_b = abs(float(lat_lon[1])) - abs(float(arrayOfIdLatLon[key][1]))
+        dist_a = abs(float(lat_lon[0])) - abs(float(processed_loc[key][0]))
+        dist_b = abs(float(lat_lon[1])) - abs(float(processed_loc[key][1]))
         dist = dist_a ** 2 + dist_b ** 2
         result[key] = dist
 
@@ -129,7 +104,8 @@ def get_from_closest(lat_lon):
 
 def main():
     load_data()
-    # load_dat_file()
+    process_locations()
+
     lat_lon = ()
     choice = ""
     while choice != "y" and choice != "Y":
@@ -138,7 +114,7 @@ def main():
 
     result = get_from_closest(lat_lon)
     for r in result:
-        print(arrayOfNCDCStations[r[0]])
+        print(all_loc[r[0]])
 
 
 main()

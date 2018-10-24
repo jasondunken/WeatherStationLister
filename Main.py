@@ -1,12 +1,51 @@
+import urllib
+import files
+
+file_loc = "data/asos-stations.txt"
 arrayOfNCDCStations = {}
 arrayOfIdLatLon = {}
 
-fileLoc = "data/asos-stations.txt"
+data_source = 'https://www.ncdc.noaa.gov/homr'
+all_loc = {}
+processed_loc = {}
+
+
+# this method gets an array of web links to .txt files
+# it assigns the locations to a class dict of all the locations without duplications
+# if returns void
+def load_data():
+    links = files.get_data(data_source)
+    entry_count = 0
+    duplicate_count = 0
+    for link in links:
+        content = urllib.request.urlopen(link)
+        for line in content:
+            line = line.decode('utf-8')
+            if line[:8] not in all_loc:
+                all_loc[line[:8]] = line
+                entry_count += 1
+            else:
+                duplicate_count += 1
+
+    print("%s duplicates were not recorded" % duplicate_count)
+    print("%s entries recorded" % entry_count)
+
+
+# this method fills an array with each location's id, lat and lon to be used for comparing to search location lat/lon
+def process_locations():
+    for entry in all_loc:
+        key = entry[:8]
+        split_entry = ' '.split(entry)
+        for s in split_entry:
+            try:
+                s = float(s)
+            except (ValueError, TypeError):
+                pass
 
 
 def load_dat_file():
-    with open(fileLoc, 'r') as file:
-        entryCount = 0
+    with open(file_loc, 'r') as file:
+        entry_count = 0
         for line in file:
             key = line[:8]
             if key.isdigit():
@@ -35,8 +74,8 @@ def load_dat_file():
                     except TypeError:
                         pass
                 arrayOfIdLatLon[key] = (lat, lon)
-                entryCount += 1
-        print("%s file loaded, %s entries" % (fileLoc, entryCount))
+                entry_count += 1
+        print("%s file loaded, %s entries" % (file_loc, entry_count))
 
 
 def get_lat_lon():
@@ -89,7 +128,8 @@ def get_from_closest(lat_lon):
 
 
 def main():
-    load_dat_file()
+    load_data()
+    # load_dat_file()
     lat_lon = ()
     choice = ""
     while choice != "y" and choice != "Y":
